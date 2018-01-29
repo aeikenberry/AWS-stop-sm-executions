@@ -47,6 +47,15 @@ func getAllExecutions(s *stepStuff) {
 	close(s.Executions)
 }
 
+func stopExecution(c sfn.SFN, e string) {
+	_, err := c.StopExecution(&sfn.StopExecutionInput{
+		ExecutionArn: aws.String(e),
+	})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
 func cancelExecutions(s *stepStuff) {
 	var count int
 
@@ -54,12 +63,7 @@ func cancelExecutions(s *stepStuff) {
 		e, more := <-s.Executions
 
 		if more {
-			_, err := s.Client.StopExecution(&sfn.StopExecutionInput{
-				ExecutionArn: aws.String(e),
-			})
-			if err != nil {
-				log.Fatal(err.Error())
-			}
+			go stopExecution(s.Client, e)
 			count = count + 1
 		} else {
 			fmt.Printf("Cancelled %d executions. \n", count)
